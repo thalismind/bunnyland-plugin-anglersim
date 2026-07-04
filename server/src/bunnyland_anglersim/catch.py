@@ -57,36 +57,84 @@ TIER_WEIGHT_SPREAD_LB: dict[str, float] = {
 NIGHT_PHASES: frozenset[str] = frozenset({"night"})
 
 #: Day catch tables: ``biome -> tier -> species``.
+#:
+#: The catalogue is deliberately wide: alongside fish it holds crustaceans, shellfish,
+#: eels, cephalopods, and the odd bit of waterlogged junk in the common tiers, with rare
+#: treasures salted into the legendary tiers. Every species tuple is kept in sorted order
+#: because :func:`roll_catch` indexes into the pool by digest — the sort is what makes the
+#: deterministic selection reproducible.
 _BASE_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
     "coast": {
-        "common": ("herring", "mackerel", "sardine"),
-        "uncommon": ("flounder", "mullet", "sea bass"),
-        "rare": ("swordfish", "tuna"),
-        "legendary": ("giant marlin",),
+        "common": (
+            "anchovy",
+            "driftwood",
+            "herring",
+            "mackerel",
+            "sardine",
+            "shore crab",
+            "smelt",
+            "tangled net",
+            "whiting",
+        ),
+        "uncommon": (
+            "blue mussel",
+            "flounder",
+            "mullet",
+            "pompano",
+            "sea bass",
+            "spiny lobster",
+        ),
+        "rare": ("barracuda", "conger eel", "swordfish", "tuna", "wahoo"),
+        "legendary": ("giant marlin", "sunken treasure chest"),
     },
     "lake": {
-        "common": ("bluegill", "perch", "sunfish"),
-        "uncommon": ("bass", "crappie", "walleye"),
-        "rare": ("muskie", "sturgeon"),
-        "legendary": ("golden koi",),
+        "common": (
+            "bluegill",
+            "crayfish",
+            "old boot",
+            "perch",
+            "pumpkinseed",
+            "roach",
+            "sunfish",
+            "waterlogged branch",
+        ),
+        "uncommon": ("bass", "crappie", "freshwater clam", "lake whitefish", "walleye"),
+        "rare": ("burbot", "lake trout", "muskie", "sturgeon"),
+        "legendary": ("golden koi", "jeweled crown"),
     },
     "marsh": {
-        "common": ("killifish", "mudminnow", "stickleback"),
-        "uncommon": ("bowfin", "bullhead catfish", "gar"),
-        "rare": ("eel", "snakehead"),
-        "legendary": ("bog leviathan",),
+        "common": (
+            "killifish",
+            "leech",
+            "mosquitofish",
+            "mudminnow",
+            "rusty bucket",
+            "stickleback",
+            "tadpole",
+        ),
+        "uncommon": ("bog crab", "bowfin", "bullhead catfish", "gar", "mud snail"),
+        "rare": ("american eel", "snakehead", "swamp eel"),
+        "legendary": ("bog leviathan", "mire idol"),
     },
     "river": {
-        "common": ("chub", "dace", "minnow"),
-        "uncommon": ("grayling", "pike", "trout"),
-        "rare": ("salmon", "steelhead"),
-        "legendary": ("river emperor",),
+        "common": (
+            "chub",
+            "dace",
+            "gudgeon",
+            "minnow",
+            "river crab",
+            "rusty can",
+            "stone loach",
+        ),
+        "uncommon": ("barbel", "grayling", "pike", "rudd", "trout"),
+        "rare": ("brown trout", "salmon", "steelhead", "taimen"),
+        "legendary": ("lost signet ring", "river emperor"),
     },
     "ship": {
-        "common": ("cod", "haddock", "pollock"),
-        "uncommon": ("grouper", "halibut", "snapper"),
-        "rare": ("bluefin tuna", "opah"),
-        "legendary": ("kraken hatchling",),
+        "common": ("cod", "dab", "frayed rope", "haddock", "pilchard", "pollock", "sprat"),
+        "uncommon": ("grouper", "halibut", "ling", "snapper", "tilefish"),
+        "rare": ("bluefin tuna", "giant squid", "oarfish", "opah"),
+        "legendary": ("kraken hatchling", "pirate doubloon hoard"),
     },
 }
 
