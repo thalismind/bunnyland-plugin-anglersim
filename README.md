@@ -1,7 +1,6 @@
 # Bunnyland Anglersim
 
-Out-of-tree [Bunnyland](https://github.com/thalismind/bunnyland-server) plugin that adds a
-Sims-4-expansion-sized **fishing** pack. Water-biome rooms (marsh, river, lake, ship, coast)
+Out-of-tree [Bunnyland](https://github.com/thalismind/bunnyland-server) plugin that adds an expansion-pack-sized **fishing** pack. Water-biome rooms (marsh, river, lake, ship, coast)
 grow fishing spots, and characters — human or AI — cast a line with the `fish` verb to land
 a **deterministically** rolled catch, keep a trophy log, and chase legendaries.
 

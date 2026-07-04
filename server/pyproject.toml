@@ -1,7 +1,7 @@
 [project]
 name = "bunnyland-anglersim"
 version = "0.1.0"
-description = "Out-of-tree Bunnyland plugin: a Sims-4-expansion-sized fishing pack (fishing spots, catch tables, rarity, bait, and a trophy log)."
+description = "Out-of-tree Bunnyland plugin: an expansion-pack-sized fishing pack (fishing spots, catch tables, rarity, bait, and a trophy log)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
