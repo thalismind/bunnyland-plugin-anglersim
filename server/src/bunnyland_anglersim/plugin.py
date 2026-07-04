@@ -22,7 +22,7 @@ from .events import FishCaughtEvent, LegendaryCatchEvent
 from .fragments import anglersim_fragments
 from .install import install_anglersim
 
-PLUGIN_ID = "bunnyland_anglersim"
+PLUGIN_ID = "bunnyland.anglersim"
 
 
 def plugin() -> Plugin:
