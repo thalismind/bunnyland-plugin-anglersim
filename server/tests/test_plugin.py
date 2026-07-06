@@ -6,9 +6,16 @@ from bunnyland.plugins import apply_plugins, load_modules
 from bunnyland_anglersim import (
     AnglerWorldgenHook,
     BaitComponent,
+    BaitMaterialComponent,
     CatchLogComponent,
+    DerbyComponent,
+    DerbyEntry,
     FishComponent,
+    FishingRunComponent,
     FishingSpotComponent,
+    RecordBookComponent,
+    RodComponent,
+    TackleComponent,
     anglersim_fragments,
 )
 from bunnyland_anglersim.plugin import PLUGIN_ID
@@ -19,6 +26,11 @@ def test_plugin_loads_with_module_qualified_id():
     assert [p.id for p in plugins] == [PLUGIN_ID]
 
 
+def test_plugin_version_is_v2():
+    plugin = load_modules(["bunnyland_anglersim"])[0]
+    assert plugin.version == "0.2.0"
+
+
 def test_plugin_declares_its_contributions():
     plugin = load_modules(["bunnyland_anglersim"])[0]
     for component in (
@@ -26,10 +38,27 @@ def test_plugin_declares_its_contributions():
         FishComponent,
         BaitComponent,
         CatchLogComponent,
+        RodComponent,
+        TackleComponent,
+        BaitMaterialComponent,
+        RecordBookComponent,
+        DerbyComponent,
+        FishingRunComponent,
     ):
         assert component in plugin.ecs.components
+    assert DerbyEntry in plugin.ecs.edges
     assert AnglerWorldgenHook in plugin.content.worldgen_hooks
     assert anglersim_fragments in plugin.content.prompt_fragments
+
+
+def test_plugin_recommends_optional_partners():
+    plugin = load_modules(["bunnyland_anglersim"])[0]
+    assert set(plugin.dependencies.recommends) == {
+        "bunnyland.fortunesim",
+        "bunnyland.hearthsim",
+        "bunnyland.museumsim",
+        "bunnyland.festivalsim",
+    }
 
 
 def test_plugin_applies_and_registers_verbs():
@@ -37,4 +66,4 @@ def test_plugin_applies_and_registers_verbs():
     applied = apply_plugins(load_modules(["bunnyland_anglersim"]), actor)
     assert applied[0].id == PLUGIN_ID
     command_types = {definition.command_type for definition in actor.action_definitions()}
-    assert {"fish"} <= command_types
+    assert {"fish", "craft-bait", "enter-derby", "judge-derby"} <= command_types

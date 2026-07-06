@@ -19,6 +19,8 @@ from bunnyland.core.world_actor import WorldActor
 
 from .catch import WATER_BIOMES
 from .components import FishingSpotComponent
+from .derby import DerbyComponent, spawn_derby
+from .records import RecordBookComponent, spawn_record_book
 
 #: Water words in generated text mapped to the canonical biome a spot should fish.
 TERM_BIOME: dict[str, str] = {
@@ -99,11 +101,26 @@ class AnglerWorldgenHook:
             return
         replace_component(entity, FishingSpotComponent(biome=biome))
 
+    def _seed_hub(self, room) -> None:
+        """Seed one world-wide record book and derby into the first fishing room.
+
+        Idempotent: only ever spawned when the world has none yet, so re-running worldgen or
+        generating several water rooms never stacks duplicate hubs.
+        """
+        world = self._actor.world
+        if not list(world.query().with_all([RecordBookComponent]).execute_entities()):
+            spawn_record_book(world, room_id=room.id)
+        if not list(world.query().with_all([DerbyComponent]).execute_entities()):
+            spawn_derby(world, room_id=room.id)
+
     def _on_room(self, event: RoomGeneratedEvent) -> None:
         entity = self._entity(event.entity_id)
         if entity is None:
             return
-        self._seed(entity, water_biome_for(event.biome, _text(event)))
+        biome = water_biome_for(event.biome, _text(event))
+        self._seed(entity, biome)
+        if biome is not None:
+            self._seed_hub(entity)
 
     def _on_object(self, event: ObjectGeneratedEvent) -> None:
         entity = self._entity(event.entity_id)

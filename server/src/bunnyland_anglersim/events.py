@@ -24,4 +24,66 @@ class LegendaryCatchEvent(DomainEvent):
     spot_id: str
 
 
-__all__ = ["FishCaughtEvent", "LegendaryCatchEvent"]
+class RecordSetEvent(DomainEvent):
+    """A catch set (or broke) the community record for its species."""
+
+    species: str
+    weight: float
+    previous_weight: float
+    holder_id: str
+    book_id: str
+
+
+class BaitCraftedEvent(DomainEvent):
+    """A character crafted bait from held materials."""
+
+    item_id: str
+    quality: float
+    materials: int
+
+
+class DerbyEnteredEvent(DomainEvent):
+    """A caught fish was entered into a fishing derby."""
+
+    derby_id: str
+    entrant_id: str
+    entry_id: str
+    species: str
+    weight: float
+
+
+class DerbyJudgedEvent(DomainEvent):
+    """A derby was judged and a champion crowned."""
+
+    derby_id: str
+    winner_id: str
+    entry_id: str
+    species: str
+    weight: float
+
+
+class FishingRunStartedEvent(DomainEvent):
+    """A seasonal fishing run opened — a storyteller-paced fishing incident."""
+
+    run_index: int
+    season: str
+    ends_at_epoch: int
+
+
+class FishingRunEndedEvent(DomainEvent):
+    """A seasonal fishing run closed."""
+
+    run_index: int
+    season: str
+
+
+__all__ = [
+    "BaitCraftedEvent",
+    "DerbyEnteredEvent",
+    "DerbyJudgedEvent",
+    "FishCaughtEvent",
+    "FishingRunEndedEvent",
+    "FishingRunStartedEvent",
+    "LegendaryCatchEvent",
+    "RecordSetEvent",
+]

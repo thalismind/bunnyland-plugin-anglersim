@@ -138,6 +138,36 @@ _BASE_TABLES: dict[str, dict[str, tuple[str, ...]]] = {
     },
 }
 
+#: Species that are debris, not food — a bare cast can still snag them.
+JUNK_SPECIES: frozenset[str] = frozenset(
+    {
+        "driftwood",
+        "frayed rope",
+        "old boot",
+        "rusty bucket",
+        "rusty can",
+        "tangled net",
+        "waterlogged branch",
+    }
+)
+
+#: Legendary-tier treasures — valuable, but not edible.
+TREASURE_SPECIES: frozenset[str] = frozenset(
+    {
+        "jeweled crown",
+        "lost signet ring",
+        "mire idol",
+        "pirate doubloon hoard",
+        "sunken treasure chest",
+    }
+)
+
+
+def is_edible(species: str) -> bool:
+    """Whether a catch is food (feeds core hunger), rather than junk or treasure."""
+    return species not in JUNK_SPECIES and species not in TREASURE_SPECIES
+
+
 #: Extra legendary species that only surface at night, per biome.
 _NOCTURNAL_LEGENDARY: dict[str, tuple[str, ...]] = {
     "coast": ("moonlit anglerfish",),
@@ -171,14 +201,25 @@ def catch_table(biome: str, phase: str) -> dict[str, tuple[str, ...]]:
     return table
 
 
-def tier_weights(phase: str, bait_quality: float = 0.0) -> dict[str, int]:
-    """Selection weights per tier, biased by bait quality and night.
+def tier_weights(
+    phase: str,
+    bait_quality: float = 0.0,
+    *,
+    gear_bonus: float = 0.0,
+    luck_bonus: float = 0.0,
+    run_bonus: float = 0.0,
+) -> dict[str, int]:
+    """Selection weights per tier, biased by bait quality, gear, luck, a run, and night.
 
-    Bait and night add absolute weight to the rare and legendary tiers, which lifts their
-    share without ever removing the chance of a common catch.
+    ``bait_quality`` (from crafted bait), ``gear_bonus`` (rod + tackle tiers), ``luck_bonus``
+    (a fortunesim ``Luck`` bias), and ``run_bonus`` (an active seasonal fishing run) all fold
+    into one additive *quality*: they add absolute weight to the rare and legendary tiers,
+    lifting their share without ever removing the chance of a common catch. All four default
+    to zero, so a bare cast rolls exactly as it did before these biases existed.
     """
     weights = dict(BASE_TIER_WEIGHTS)
-    bonus = max(0, int(round(bait_quality * 10)))
+    quality = bait_quality + gear_bonus + luck_bonus + run_bonus
+    bonus = max(0, int(round(quality * 10)))
     weights["rare"] += 2 * bonus
     weights["legendary"] += bonus
     if phase in NIGHT_PHASES:
@@ -219,9 +260,18 @@ def roll_catch(
     biome: str,
     phase: str,
     bait_quality: float = 0.0,
+    gear_bonus: float = 0.0,
+    luck_bonus: float = 0.0,
+    run_bonus: float = 0.0,
 ) -> Catch:
-    """Deterministically resolve one cast into a :class:`Catch`."""
-    weights = tier_weights(phase, bait_quality)
+    """Deterministically resolve one cast into a :class:`Catch`.
+
+    ``gear_bonus``, ``luck_bonus``, and ``run_bonus`` join ``bait_quality`` as odds biases;
+    all default to zero so the pinned v1 selection is preserved for a plain cast.
+    """
+    weights = tier_weights(
+        phase, bait_quality, gear_bonus=gear_bonus, luck_bonus=luck_bonus, run_bonus=run_bonus
+    )
     tier = _weighted_tier(_digest_int("tier", spot_id, character_id, epoch, casts), weights)
     pool = catch_table(biome, phase)[tier]
     species = pool[_digest_int("species", spot_id, character_id, epoch, casts) % len(pool)]
@@ -232,8 +282,10 @@ def roll_catch(
 __all__ = [
     "BASE_TIER_WEIGHTS",
     "DEFAULT_BIOME",
+    "JUNK_SPECIES",
     "LEGENDARY",
     "NIGHT_PHASES",
+    "TREASURE_SPECIES",
     "TIER_BASE_WEIGHT_LB",
     "TIER_ORDER",
     "TIER_WEIGHT_SPREAD_LB",
@@ -241,6 +293,7 @@ __all__ = [
     "Catch",
     "canonical_biome",
     "catch_table",
+    "is_edible",
     "roll_catch",
     "tier_weights",
 ]

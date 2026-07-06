@@ -31,10 +31,14 @@ from bunnyland.core.handlers import (
     require_reachable_entity,
 )
 
+from . import connectors
 from .catch import LEGENDARY, roll_catch
 from .components import BaitComponent, CatchLogComponent, FishingSpotComponent, record_catch
-from .events import FishCaughtEvent, LegendaryCatchEvent
+from .events import FishCaughtEvent, LegendaryCatchEvent, RecordSetEvent
+from .gear import gear_bonus_for
 from .prefabs import spawn_fish
+from .records import RecordBookComponent, offer_to_book, record_book_in
+from .runs import run_bonus
 from .spatial import phase_of, room_of
 
 
@@ -124,6 +128,9 @@ class FishHandler:
             biome=spot_state.biome,
             phase=phase_of(ctx.world),
             bait_quality=bait_quality,
+            gear_bonus=gear_bonus_for(ctx.world, character),
+            luck_bonus=connectors.luck_bonus_for(ctx.world, character),
+            run_bonus=run_bonus(ctx.world, ctx.epoch),
         )
 
         fish = spawn_fish(
@@ -175,7 +182,41 @@ class FishHandler:
                     )
                 )
             )
+        record_event = self._offer_to_record_book(ctx, character_id, room_id, fish, result)
+        if record_event is not None:
+            events.append(record_event)
         return ok(*events)
+
+    def _offer_to_record_book(self, ctx, character_id, room_id, fish, result):
+        """Fold the catch into the community record book; emit a ``RecordSetEvent`` on a record.
+
+        A record-setting catch is also tagged as a museum collectible (a no-op without the
+        museum pack). Returns ``None`` when there is no book or the catch is not a record.
+        """
+        book_entity = record_book_in(ctx.world)
+        if book_entity is None:
+            return None
+        book = book_entity.get_component(RecordBookComponent)
+        updated, previous = offer_to_book(
+            book, species=result.species, weight=result.weight, holder_id=str(character_id)
+        )
+        if previous is None:
+            return None
+        replace_component(book_entity, updated)
+        connectors.tag_collectible(fish, result.tier)
+        return RecordSetEvent(
+            **ctx.event_base(
+                visibility=EventVisibility.ROOM,
+                actor_id=str(character_id),
+                room_id=room_id,
+                target_ids=(str(fish.id),),
+                species=result.species,
+                weight=result.weight,
+                previous_weight=previous,
+                holder_id=str(character_id),
+                book_id=str(book_entity.id),
+            )
+        )
 
 
 FISH_DEF = ActionDefinition(
