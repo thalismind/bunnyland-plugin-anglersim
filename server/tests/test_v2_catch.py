@@ -12,7 +12,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.consumables import FoodComponent
+from bunnyland.foundation.consumables.components import FoodComponent
 
 from bunnyland_anglersim import (
     FishHandler,
@@ -53,9 +53,7 @@ def test_tier_weights_bonuses_lift_rare_and_legendary():
 
 
 def test_roll_catch_bonuses_default_to_v1():
-    plain = roll_catch(
-        spot_id="s", character_id="c", epoch=1, casts=0, biome="lake", phase="day"
-    )
+    plain = roll_catch(spot_id="s", character_id="c", epoch=1, casts=0, biome="lake", phase="day")
     same = roll_catch(
         spot_id="s",
         character_id="c",

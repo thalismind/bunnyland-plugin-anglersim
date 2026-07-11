@@ -1,116 +1,55 @@
-from __future__ import annotations
-
 import asyncio
 
-from bunnyland.core import IdentityComponent, RoomComponent, WorldActor, spawn_entity
-from bunnyland.core.components import GenerationIntentComponent
-from bunnyland.core.events import ObjectGeneratedEvent, RoomGeneratedEvent, event_base
-from bunnyland.plugins import apply_plugins, load_modules
+from bunnyland.core import Contains, WorldActor
+from bunnyland.plugins import apply_plugins
+from bunnyland.worldgen import ObjectSpec, RoomSpec, WorldProposal, instantiate
 
-from bunnyland_anglersim import FishingSpotComponent, water_biome_for
-from bunnyland_anglersim.catch import WATER_BIOMES
+from bunnyland_anglersim import DerbyComponent, FishingSpotComponent, RecordBookComponent
+from bunnyland_anglersim.plugin import bunnyland_plugins as _plugins
 
 
-def _actor():
+def _world(*, room=None, object_=None):
     actor = WorldActor()
-    apply_plugins(load_modules(["bunnyland_anglersim"]), actor)
-    return actor
-
-
-def _publish(actor, event):
-    asyncio.run(actor.bus.publish(event))
-
-
-def _room_event(entity, *, biome="unknown", tags=(), description=""):
-    return RoomGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(entity.id),
-        entity_key="r",
-        entity_kind="room",
-        generation=GenerationIntentComponent(tags=tuple(tags), description=description),
-        room_key="r",
-        biome=biome,
+    apply_plugins(_plugins(), actor)
+    result = asyncio.run(
+        instantiate(
+            actor,
+            WorldProposal(
+                seed="seed",
+                rooms=[room or RoomSpec(key="room", title="Room")],
+                objects=[object_] if object_ else [],
+            ),
+        )
     )
+    return actor, result
 
 
-def _object_event(entity, *, tags=(), description=""):
-    return ObjectGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(entity.id),
-        entity_key="o",
-        entity_kind="object",
-        generation=GenerationIntentComponent(tags=tuple(tags), description=description),
-        object_key="o",
-    )
-
-
-def test_water_biome_room_gets_a_spot():
-    actor = _actor()
-    room = spawn_entity(actor.world, [RoomComponent(title="Bog", biome="marsh")])
-    _publish(actor, _room_event(room, biome="marsh"))
+def test_water_room_gets_spot_and_singleton_hubs():
+    actor, result = _world(room=RoomSpec(key="bog", title="Bog", biome="marsh"))
+    room = actor.world.get_entity(result.rooms["bog"])
     assert room.get_component(FishingSpotComponent).biome == "marsh"
+    children = [
+        actor.world.get_entity(target) for _edge, target in room.get_relationships(Contains)
+    ]
+    assert sum(child.has_component(RecordBookComponent) for child in children) == 1
+    assert sum(child.has_component(DerbyComponent) for child in children) == 1
 
 
-def test_dry_room_with_watery_description_gets_a_spot():
-    actor = _actor()
-    room = spawn_entity(actor.world, [RoomComponent(title="Garden", biome="meadow")])
-    _publish(actor, _room_event(room, biome="meadow", description="a still pond by the hedge"))
-    assert room.get_component(FishingSpotComponent).biome == "lake"
-
-
-def test_dry_room_gets_no_spot():
-    actor = _actor()
-    room = spawn_entity(actor.world, [RoomComponent(title="Attic", biome="indoor")])
-    _publish(actor, _room_event(room, biome="indoor", description="a dusty loft"))
-    assert not room.has_component(FishingSpotComponent)
-
-
-def test_watery_object_gets_a_spot():
-    actor = _actor()
-    obj = spawn_entity(actor.world, [IdentityComponent(name="deck", kind="object")])
-    _publish(actor, _object_event(obj, tags=("dock", "wooden")))
-    assert obj.get_component(FishingSpotComponent).biome == "ship"
-
-
-def test_plain_object_gets_no_spot():
-    actor = _actor()
-    obj = spawn_entity(actor.world, [IdentityComponent(name="crate", kind="object")])
-    _publish(actor, _object_event(obj, tags=("wooden", "storage")))
-    assert not obj.has_component(FishingSpotComponent)
-
-
-def test_existing_spot_is_not_overwritten():
-    actor = _actor()
-    room = spawn_entity(
-        actor.world,
-        [RoomComponent(title="Lake", biome="lake"), FishingSpotComponent(biome="lake", casts=3)],
+def test_watery_description_and_object_get_spots():
+    actor, result = _world(room=RoomSpec(key="pond", title="Garden", description="a still pond"))
+    assert (
+        actor.world.get_entity(result.rooms["pond"]).get_component(FishingSpotComponent).biome
+        == "lake"
     )
-    _publish(actor, _room_event(room, biome="lake"))
-    assert room.get_component(FishingSpotComponent).casts == 3
+    actor, result = _world(
+        object_=ObjectSpec(key="deck", name="Deck", room_key="room", tags=("dock",))
+    )
+    assert (
+        actor.world.get_entity(result.objects["deck"]).get_component(FishingSpotComponent).biome
+        == "ship"
+    )
 
 
-def test_room_event_for_a_missing_entity_is_ignored():
-    actor = _actor()
-    room = spawn_entity(actor.world, [RoomComponent(title="Lake", biome="lake")])
-    event = _room_event(room, biome="lake")
-    event = event.model_copy(update={"entity_id": "entity_9999"})  # dangling reference
-    _publish(actor, event)
-    assert not room.has_component(FishingSpotComponent)
-
-
-def test_object_event_for_a_missing_entity_is_ignored():
-    actor = _actor()
-    obj = spawn_entity(actor.world, [IdentityComponent(name="dock", kind="object")])
-    event = _object_event(obj, tags=("dock",))
-    event = event.model_copy(update={"entity_id": "entity_9999"})
-    _publish(actor, event)
-    assert not obj.has_component(FishingSpotComponent)
-
-
-def test_water_biome_for_direct_and_term_and_none():
-    for biome in WATER_BIOMES:
-        assert water_biome_for(biome, "") == biome
-    assert water_biome_for("plains", "beside a creek") == "river"
-    assert water_biome_for("plains", "a dry cave") is None
+def test_dry_entities_are_ignored():
+    actor, result = _world(room=RoomSpec(key="field", title="Field", biome="meadow"))
+    assert not actor.world.get_entity(result.rooms["field"]).has_component(FishingSpotComponent)

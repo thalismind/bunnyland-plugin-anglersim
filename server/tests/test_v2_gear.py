@@ -77,9 +77,13 @@ def test_gear_prompt_fragments():
     actor, room, holder = _world()
     rod = spawn_rod(actor.world, tier="masterwork")
     tackle = spawn_tackle(actor.world, tier="lure")
-    assert "masterwork fishing rod" in rod.get_component(RodComponent).prompt_fragments(
-        for_ctx(actor.world, rod, holder)
-    )[0]
-    assert "lure tackle" in tackle.get_component(TackleComponent).prompt_fragments(
-        for_ctx(actor.world, tackle, holder)
-    )[0]
+    assert (
+        "masterwork fishing rod"
+        in rod.get_component(RodComponent).prompt_fragments(for_ctx(actor.world, rod, holder))[0]
+    )
+    assert (
+        "lure tackle"
+        in tackle.get_component(TackleComponent).prompt_fragments(
+            for_ctx(actor.world, tackle, holder)
+        )[0]
+    )

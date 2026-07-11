@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from bunnyland.core import RoomComponent, container_of
 from bunnyland.core.components import WorldClockComponent
-from bunnyland.mechanics.environment import TimeOfDayComponent, time_of_day
+from bunnyland.foundation.environment.mechanics import TimeOfDayComponent, time_of_day
 from relics import Entity, World
 
 #: Guard against pathological containment cycles while walking up to a room.

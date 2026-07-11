@@ -4,8 +4,8 @@ from dataclasses import replace
 
 from bunnyland.core import WorldActor, WorldClockComponent, spawn_entity
 from bunnyland.core.ecs import replace_component
-from bunnyland.mechanics.environment import CalendarComponent
-from bunnyland.mechanics.storyteller import IncidentComponent
+from bunnyland.foundation.environment.mechanics import CalendarComponent
+from bunnyland.foundation.storyteller.mechanics import IncidentComponent
 
 from bunnyland_anglersim.events import FishingRunEndedEvent, FishingRunStartedEvent
 from bunnyland_anglersim.runs import (

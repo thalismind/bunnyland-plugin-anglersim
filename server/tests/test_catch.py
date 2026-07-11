@@ -32,9 +32,7 @@ def test_roll_varies_with_epoch():
 
 
 def test_roll_species_belongs_to_its_tier_table():
-    result = roll_catch(
-        spot_id="s", character_id="c", epoch=6, casts=0, biome="lake", phase="day"
-    )
+    result = roll_catch(spot_id="s", character_id="c", epoch=6, casts=0, biome="lake", phase="day")
     assert result.species in catch_table("lake", "day")[result.tier]
 
 
@@ -105,10 +103,7 @@ def test_all_species_tuples_are_sorted():
 def test_catalogue_is_wide_across_biomes_and_tiers():
     # Guards against an accidental shrink of the expanded catalogue.
     all_species = {
-        species
-        for tiers in _BASE_TABLES.values()
-        for pool in tiers.values()
-        for species in pool
+        species for tiers in _BASE_TABLES.values() for pool in tiers.values() for species in pool
     }
     assert len(all_species) >= 90
     for biome in WATER_BIOMES:
@@ -147,8 +142,7 @@ def test_every_tier_is_reachable_in_every_biome():
     for biome in WATER_BIOMES:
         for phase in ("day", "night"):
             seen_tiers = {
-                roll_catch(epoch=e, biome=biome, phase=phase, **base).tier
-                for e in range(400)
+                roll_catch(epoch=e, biome=biome, phase=phase, **base).tier for e in range(400)
             }
             assert seen_tiers == set(TIER_ORDER)
 

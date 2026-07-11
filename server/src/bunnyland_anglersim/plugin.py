@@ -29,7 +29,7 @@ from .derby import (
     DerbyComponent,
     DerbyEntry,
 )
-from .enrichment import AnglerWorldgenHook
+from .enrichment import AnglerGenerationEnricher
 from .events import (
     BaitCraftedEvent,
     DerbyEnteredEvent,
@@ -106,7 +106,7 @@ def plugin() -> Plugin:
         runtime=RuntimeContribution(service_factories=(install_anglersim,)),
         content=ContentContribution(
             prompt_fragments=(anglersim_fragments,),
-            worldgen_hooks=(AnglerWorldgenHook,),
+            generation_enrichers=(AnglerGenerationEnricher(),),
         ),
     )
 

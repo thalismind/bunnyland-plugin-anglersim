@@ -11,7 +11,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.components import WorldClockComponent
 from bunnyland.core.ecs import replace_component
-from bunnyland.mechanics.environment import SECONDS_PER_HOUR, TimeOfDayComponent
+from bunnyland.foundation.environment.mechanics import SECONDS_PER_HOUR, TimeOfDayComponent
 
 from bunnyland_anglersim.spatial import phase_of, room_of
 

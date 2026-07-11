@@ -128,9 +128,7 @@ def spawn_tackle(world: World, *, room_id=None, tier: str = "hook") -> Entity:
 def _link(world: World, item: Entity, room_id) -> None:
     if room_id is None or not world.has_entity(room_id):
         return
-    world.get_entity(room_id).add_relationship(
-        Contains(mode=ContainmentMode.ROOM_CONTENT), item.id
-    )
+    world.get_entity(room_id).add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), item.id)
 
 
 __all__ = [

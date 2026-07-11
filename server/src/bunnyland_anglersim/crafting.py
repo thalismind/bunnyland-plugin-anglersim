@@ -32,7 +32,7 @@ from bunnyland.core.handlers import (
     rejected,
     require_character,
 )
-from bunnyland.mechanics.consumables import FoodComponent
+from bunnyland.foundation.consumables.components import FoodComponent
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component, Entity, World

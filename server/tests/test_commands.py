@@ -265,9 +265,7 @@ def test_fish_rejects_missing_explicit_spot():
     actor, room, holder = _world()
     spawn_fishing_spot(actor.world, room_id=room.id)
 
-    result = FishHandler().execute(
-        _ctx(actor), _cmd(holder.id, "fish", {"spot_id": "entity_9999"})
-    )
+    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {"spot_id": "entity_9999"}))
 
     assert not result.ok
     assert result.reason == "that fishing spot does not exist"
@@ -292,9 +290,7 @@ def test_fish_rejects_explicit_non_spot_target():
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
 
-    result = FishHandler().execute(
-        _ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(rock.id)})
-    )
+    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(rock.id)}))
 
     assert not result.ok
     assert result.reason == "that is not a fishing spot"

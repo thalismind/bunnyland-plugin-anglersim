@@ -126,10 +126,7 @@ class RecordMemoryReactor:
         )
         store.add(
             self.COLLECTION,
-            text=(
-                f"A {event.weight:.1f} lb {event.species} set the community record "
-                f"({beat})."
-            ),
+            text=(f"A {event.weight:.1f} lb {event.species} set the community record ({beat})."),
             tags=("anglersim", "record", event.species),
             created_at_epoch=event.world_epoch,
             source="record",

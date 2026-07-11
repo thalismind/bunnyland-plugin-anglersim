@@ -3,7 +3,7 @@
 Now and then the fish are *running* — a spawning run, a warm current, a feeding frenzy — and
 for a while the water gives up rarer catches. :class:`FishingRunConsequence` paces itself like
 the core storyteller (an interval and a next-due epoch), and when a run opens it stamps a
-**core** :class:`~bunnyland.mechanics.storyteller.IncidentComponent` onto a spawned incident
+Foundation Storyteller ``IncidentComponent`` onto a spawned incident
 entity so the run registers in the shared world-pressure budget rather than a private timer.
 While a run is active every cast gets a :func:`run_bonus` toward the rare and legendary tiers;
 when it closes the incident is resolved and the bias is gone.
@@ -19,8 +19,8 @@ from dataclasses import replace
 from bunnyland.core import IdentityComponent, WorldClockComponent, spawn_entity
 from bunnyland.core.ecs import parse_entity_id, replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility, event_base
-from bunnyland.mechanics.environment import CalendarComponent
-from bunnyland.mechanics.storyteller import IncidentComponent
+from bunnyland.foundation.environment.mechanics import CalendarComponent
+from bunnyland.foundation.storyteller.mechanics import IncidentComponent
 from pydantic.dataclasses import dataclass
 from relics import Component, Entity, World
 
@@ -156,9 +156,7 @@ class FishingRunConsequence:
         parsed = parse_entity_id(incident_id)
         if parsed is not None and world.has_entity(parsed):
             incident = world.get_entity(parsed)
-            resolved = replace(
-                incident.get_component(IncidentComponent), resolved_at_epoch=epoch
-            )
+            resolved = replace(incident.get_component(IncidentComponent), resolved_at_epoch=epoch)
             replace_component(incident, resolved)
         replace_component(
             marker_entity,

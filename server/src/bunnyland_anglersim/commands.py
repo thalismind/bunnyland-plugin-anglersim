@@ -133,9 +133,7 @@ class FishHandler:
             run_bonus=run_bonus(ctx.world, ctx.epoch),
         )
 
-        fish = spawn_fish(
-            ctx.world, species=result.species, tier=result.tier, weight=result.weight
-        )
+        fish = spawn_fish(ctx.world, species=result.species, tier=result.tier, weight=result.weight)
         character.add_relationship(Contains(mode=ContainmentMode.INVENTORY), fish.id)
         if bait is not None:
             _consume_bait(ctx, bait)

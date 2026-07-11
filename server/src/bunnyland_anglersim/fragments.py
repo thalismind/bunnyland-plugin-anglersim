@@ -49,9 +49,7 @@ def anglersim_fragments(world: World, character: Entity) -> list[str]:
         lines.extend(character.get_component(CatchLogComponent).prompt_fragments(base))
     for entity_id in reachable_ids(world, character):
         entity = world.get_entity(entity_id)
-        ctx = ComponentPromptContext.for_entity(
-            world, entity, room=base.room, target=character
-        )
+        ctx = ComponentPromptContext.for_entity(world, entity, room=base.room, target=character)
         for component_type in _REACHABLE_COMPONENTS:
             if entity.has_component(component_type):
                 lines.extend(entity.get_component(component_type).prompt_fragments(ctx))

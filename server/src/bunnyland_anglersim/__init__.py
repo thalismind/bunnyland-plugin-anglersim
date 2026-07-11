@@ -51,7 +51,7 @@ from .derby import (
     derby_standings,
     spawn_derby,
 )
-from .enrichment import AnglerWorldgenHook, water_biome_for
+from .enrichment import AnglerGenerationEnricher, water_biome_for
 from .events import (
     BaitCraftedEvent,
     DerbyEnteredEvent,
@@ -98,7 +98,7 @@ __all__ = [
     "DERBY_ACTION_HANDLERS",
     "FISH_DEF",
     "PLUGIN_ID",
-    "AnglerWorldgenHook",
+    "AnglerGenerationEnricher",
     "BaitComponent",
     "BaitCraftedEvent",
     "BaitMaterialComponent",

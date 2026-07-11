@@ -1,29 +1,14 @@
-"""World-generation enrichment: seed fishing spots in water biomes.
+"""Declarative fishing-spot and fishing-hub generation enrichment."""
 
-Generated rooms carry a ``biome`` and generated entities expose semantic ``tags``/
-``wants``/``needs`` and an intent ``description``. This hook attaches a
-:class:`FishingSpotComponent` to any generated room in a recognised water biome, and to any
-generated object whose text reads as watery (a pond, a well, a ship's deck…), so worlds come
-pre-stocked with places to fish — without the core generator knowing this plugin exists.
-"""
-
-from __future__ import annotations
-
-from bunnyland.core.ecs import parse_entity_id, replace_component
-from bunnyland.core.events import (
-    GeneratedEntityEvent,
-    ObjectGeneratedEvent,
-    RoomGeneratedEvent,
-)
-from bunnyland.core.world_actor import WorldActor
+from bunnyland.core import ContainmentMode, Contains, IdentityComponent
+from bunnyland.core.generation import GenerationChild, GenerationDelta, GenerationRequest
 
 from .catch import WATER_BIOMES
 from .components import FishingSpotComponent
-from .derby import DerbyComponent, spawn_derby
-from .records import RecordBookComponent, spawn_record_book
+from .derby import DerbyComponent
+from .records import RecordBookComponent
 
-#: Water words in generated text mapped to the canonical biome a spot should fish.
-TERM_BIOME: dict[str, str] = {
+TERM_BIOME = {
     "bog": "marsh",
     "swamp": "marsh",
     "wetland": "marsh",
@@ -55,78 +40,51 @@ TERM_BIOME: dict[str, str] = {
 }
 
 
-def _text(event: GeneratedEntityEvent) -> str:
-    generation = event.generation
-    return " ".join(
-        (
-            event.entity_kind,
-            generation.description,
-            *generation.tags,
-            *generation.wants,
-            *generation.needs,
-        )
-    ).casefold()
-
-
 def water_biome_for(biome: str, text: str) -> str | None:
-    """Return the fishing biome for a generated entity, or ``None`` if it is not watery.
-
-    A recognised biome wins outright; otherwise the earliest matching water word (by sorted
-    term, for determinism) decides the biome.
-    """
     if biome in WATER_BIOMES:
         return biome
-    for term, mapped in sorted(TERM_BIOME.items()):
-        if term in text:
-            return mapped
-    return None
+    return next((mapped for term, mapped in sorted(TERM_BIOME.items()) if term in text), None)
 
 
-class AnglerWorldgenHook:
-    """Attach fishing spots to generated water-biome rooms and watery objects."""
-
-    def subscribe(self, actor: WorldActor) -> None:
-        self._actor = actor
-        actor.bus.subscribe(RoomGeneratedEvent, self._on_room)
-        actor.bus.subscribe(ObjectGeneratedEvent, self._on_object)
-
-    def _entity(self, entity_id: str):
-        parsed = parse_entity_id(entity_id)
-        if parsed is None or not self._actor.world.has_entity(parsed):
-            return None
-        return self._actor.world.get_entity(parsed)
-
-    def _seed(self, entity, biome: str | None) -> None:
-        if entity is None or entity.has_component(FishingSpotComponent) or biome is None:
-            return
-        replace_component(entity, FishingSpotComponent(biome=biome))
-
-    def _seed_hub(self, room) -> None:
-        """Seed one world-wide record book and derby into the first fishing room.
-
-        Idempotent: only ever spawned when the world has none yet, so re-running worldgen or
-        generating several water rooms never stacks duplicate hubs.
-        """
-        world = self._actor.world
-        if not list(world.query().with_all([RecordBookComponent]).execute_entities()):
-            spawn_record_book(world, room_id=room.id)
-        if not list(world.query().with_all([DerbyComponent]).execute_entities()):
-            spawn_derby(world, room_id=room.id)
-
-    def _on_room(self, event: RoomGeneratedEvent) -> None:
-        entity = self._entity(event.entity_id)
-        if entity is None:
-            return
-        biome = water_biome_for(event.biome, _text(event))
-        self._seed(entity, biome)
-        if biome is not None:
-            self._seed_hub(entity)
-
-    def _on_object(self, event: ObjectGeneratedEvent) -> None:
-        entity = self._entity(event.entity_id)
-        if entity is None:
-            return
-        self._seed(entity, water_biome_for("", _text(event)))
+def _hub(request, key, component):
+    return GenerationChild(
+        request=GenerationRequest(
+            entity_kind="feature",
+            description=key,
+            source_seed=request.source_seed,
+            source_key=f"{request.source_key}:{key.casefold().replace(' ', '-')}",
+            tags=("anglersim",),
+        ),
+        parent_edge=Contains(mode=ContainmentMode.ROOM_CONTENT),
+        components=(IdentityComponent(name=key, kind="feature", tags=("anglersim",)), component),
+        singleton_key=f"anglersim:{type(component).__name__}",
+    )
 
 
-__all__ = ["TERM_BIOME", "AnglerWorldgenHook", "water_biome_for"]
+class AnglerGenerationEnricher:
+    capabilities: tuple[str, ...] = ()
+
+    def enrich(self, request: GenerationRequest) -> GenerationDelta:
+        existing = tuple(request.context.get("base_components", ()))
+        if any(isinstance(item, FishingSpotComponent) for item in existing):
+            return GenerationDelta()
+        room = next((item for item in existing if item.__class__.__name__ == "RoomComponent"), None)
+        biome = str(getattr(room, "biome", ""))
+        text = " ".join(
+            (request.source_key, request.entity_kind, request.description, *request.tags)
+        ).casefold()
+        fishing_biome = water_biome_for(biome, text)
+        if fishing_biome is None:
+            return GenerationDelta()
+        children = ()
+        if request.entity_kind == "room":
+            children = (
+                _hub(request, "Anglers' Record Book", RecordBookComponent()),
+                _hub(request, "Fishing Derby", DerbyComponent()),
+            )
+        return GenerationDelta(
+            components=(FishingSpotComponent(biome=fishing_biome),), children=children
+        )
+
+
+__all__ = ["AnglerGenerationEnricher", "TERM_BIOME", "water_biome_for"]
