@@ -1,0 +1,16 @@
+newmtl Water
+Kd 0.20 0.58 0.68
+d 0.82
+Ns 80
+
+newmtl Bank
+Kd 0.31 0.43 0.18
+
+newmtl Stone
+Kd 0.42 0.45 0.43
+
+newmtl Reed
+Kd 0.23 0.48 0.16
+
+newmtl Lily
+Kd 0.28 0.62 0.25

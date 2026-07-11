@@ -205,9 +205,23 @@ def test_legendary_catch_emits_room_event():
 
 def test_non_legendary_catch_has_no_legendary_event():
     actor, room, holder = _world()
-    spawn_fishing_spot(actor.world, room_id=room.id, biome="lake")
+    spot = spawn_fishing_spot(actor.world, room_id=room.id, biome="lake")
+    phase = phase_of(actor.world)
+    epoch = next(
+        e
+        for e in range(500)
+        if roll_catch(
+            spot_id=str(spot.id),
+            character_id=str(holder.id),
+            epoch=e,
+            casts=0,
+            biome="lake",
+            phase=phase,
+        ).tier
+        != "legendary"
+    )
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = FishHandler().execute(_ctx(actor, epoch), _cmd(holder.id, "fish", {}))
 
     assert not any(isinstance(event, LegendaryCatchEvent) for event in result.events)
 

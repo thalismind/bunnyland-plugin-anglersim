@@ -43,6 +43,7 @@ from .events import (
 from .fragments import anglersim_fragments
 from .gear import RodComponent, TackleComponent
 from .install import install_anglersim
+from .integration_3d import install_anglersim_3d
 from .records import RecordBookComponent
 from .runs import FishingRunComponent
 
@@ -65,6 +66,7 @@ def plugin() -> Plugin:
                 "bunnyland.museumsim",
                 "bunnyland.festivalsim",
             ),
+            integrates_with=("bunnyland.3d",),
         ),
         ecs=EcsContribution(
             components=(
@@ -103,7 +105,10 @@ def plugin() -> Plugin:
                 FishingRunEndedEvent,
             ),
         ),
-        runtime=RuntimeContribution(service_factories=(install_anglersim,)),
+        runtime=RuntimeContribution(
+            service_factories=(install_anglersim,),
+            integration_factories=(install_anglersim_3d,),
+        ),
         content=ContentContribution(
             prompt_fragments=(anglersim_fragments,),
             generation_enrichers=(AnglerGenerationEnricher(),),
