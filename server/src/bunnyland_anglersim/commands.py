@@ -18,8 +18,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from bunnyland.core import ContainmentMode, Contains, contents, reachable_ids
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
@@ -222,7 +222,7 @@ FISH_DEF = ActionDefinition(
     title="Fish",
     description="Cast a line at a fishing spot within reach and try to land a catch.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "spot_id": ActionArgument(
             title="Fishing spot",

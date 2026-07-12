@@ -24,8 +24,8 @@ from bunnyland.core import (
     reachable_ids,
     spawn_entity,
 )
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
@@ -271,7 +271,7 @@ ENTER_DERBY_DEF = ActionDefinition(
     title="Enter derby",
     description="Enter a held fish into a fishing derby within reach.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "derby_id": ActionArgument(
             title="Derby",
@@ -291,7 +291,7 @@ JUDGE_DERBY_DEF = ActionDefinition(
     title="Judge derby",
     description="Judge a fishing derby within reach, crowning the heaviest fish.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "derby_id": ActionArgument(
             title="Derby",
