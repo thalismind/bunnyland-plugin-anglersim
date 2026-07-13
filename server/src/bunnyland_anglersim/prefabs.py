@@ -18,7 +18,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.ecs import replace_component
 from bunnyland.foundation.consumables.components import FoodComponent
-from relics import Entity, World
+from relics import Component, Entity, World
 
 from .catch import is_edible
 from .components import BaitComponent, FishComponent, FishingSpotComponent
@@ -79,7 +79,11 @@ def spawn_fish(world: World, *, species: str, tier: str, weight: float) -> Entit
     through the shared ``eat`` verb; junk and treasure catches are inedible and omit it. The
     heavier the fish, the more nutrition and satiety it provides.
     """
-    components = [
+    return spawn_entity(world, fish_components(species=species, tier=tier, weight=weight))
+
+
+def fish_components(*, species: str, tier: str, weight: float) -> tuple[Component, ...]:
+    components: list[Component] = [
         IdentityComponent(name=species, kind="item", tags=("anglersim", "fish")),
         PortableComponent(),
         HoldableComponent(slot="hand"),
@@ -91,7 +95,13 @@ def spawn_fish(world: World, *, species: str, tier: str, weight: float) -> Entit
                 nutrition=round(weight * 8.0, 1), satiety=round(weight * 10.0, 1), raw=True
             )
         )
-    return spawn_entity(world, components)
+    return tuple(components)
 
 
-__all__ = ["attach_fishing_spot", "spawn_bait", "spawn_fish", "spawn_fishing_spot"]
+__all__ = [
+    "attach_fishing_spot",
+    "fish_components",
+    "spawn_bait",
+    "spawn_fish",
+    "spawn_fishing_spot",
+]

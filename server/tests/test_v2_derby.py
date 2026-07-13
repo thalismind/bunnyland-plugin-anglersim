@@ -12,6 +12,7 @@ from bunnyland.core import (
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.prompts.context import ComponentPromptContext
+from conftest import execute_handler
 
 from bunnyland_anglersim import (
     EnterDerbyHandler,
@@ -67,7 +68,7 @@ def test_enter_derby_registers_entry_and_event():
     derby = spawn_derby(actor.world, room_id=room.id)
     fish = _fish(actor, holder, weight=4.5)
 
-    result = EnterDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "enter-derby", {}))
+    result = execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {}))
 
     assert result.ok
     event = result.events[0]
@@ -84,7 +85,7 @@ def test_enter_derby_picks_heaviest_held_fish():
     _fish(actor, holder, species="perch", weight=1.0)
     _fish(actor, holder, species="pike", weight=7.0)
 
-    result = EnterDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "enter-derby", {}))
+    result = execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {}))
     assert result.ok
     assert result.events[0].species == "pike"
 
@@ -93,7 +94,8 @@ def test_enter_derby_explicit_fish_and_derby():
     actor, room, holder = _world()
     derby = spawn_derby(actor.world, room_id=room.id)
     fish = _fish(actor, holder, species="carp", weight=2.0)
-    result = EnterDerbyHandler().execute(
+    result = execute_handler(
+        EnterDerbyHandler(),
         _ctx(actor),
         _cmd(holder.id, "enter-derby", {"derby_id": str(derby.id), "fish_id": str(fish.id)}),
     )
@@ -104,11 +106,11 @@ def test_enter_derby_rejects_duplicate_fish():
     actor, room, holder = _world()
     spawn_derby(actor.world, room_id=room.id)
     fish = _fish(actor, holder, weight=2.0)
-    EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(fish.id)})
+    execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(fish.id)})
     )
-    result = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(fish.id)})
+    result = execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(fish.id)})
     )
     assert not result.ok
     assert result.reason == "that fish is already entered"
@@ -124,14 +126,14 @@ def test_judge_derby_crowns_heaviest():
     small = _fish(actor, holder, species="perch", weight=1.5)
     big = spawn_fish(actor.world, species="pike", tier="rare", weight=9.0)
     other.add_relationship(Contains(mode=ContainmentMode.INVENTORY), big.id)
-    EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(small.id)})
+    execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(small.id)})
     )
-    EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(other.id, "enter-derby", {"fish_id": str(big.id)})
+    execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(other.id, "enter-derby", {"fish_id": str(big.id)})
     )
 
-    result = JudgeDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "judge-derby", {}))
+    result = execute_handler(JudgeDerbyHandler(), _ctx(actor), _cmd(holder.id, "judge-derby", {}))
 
     assert result.ok
     event = result.events[0]
@@ -148,10 +150,12 @@ def test_enter_rejects_closed_derby():
     derby = spawn_derby(actor.world, room_id=room.id)
     _fish(actor, holder)
     # Close it by judging (needs an entry first), then re-enter.
-    EnterDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "enter-derby", {}))
-    JudgeDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "judge-derby", {}))
-    result = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"derby_id": str(derby.id)})
+    execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {}))
+    execute_handler(JudgeDerbyHandler(), _ctx(actor), _cmd(holder.id, "judge-derby", {}))
+    result = execute_handler(
+        EnterDerbyHandler(),
+        _ctx(actor),
+        _cmd(holder.id, "enter-derby", {"derby_id": str(derby.id)}),
     )
     assert not result.ok
     assert result.reason == "that derby is closed"
@@ -161,9 +165,9 @@ def test_judge_rejects_already_judged():
     actor, room, holder = _world()
     spawn_derby(actor.world, room_id=room.id)
     _fish(actor, holder)
-    EnterDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "enter-derby", {}))
-    JudgeDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "judge-derby", {}))
-    result = JudgeDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "judge-derby", {}))
+    execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {}))
+    execute_handler(JudgeDerbyHandler(), _ctx(actor), _cmd(holder.id, "judge-derby", {}))
+    result = execute_handler(JudgeDerbyHandler(), _ctx(actor), _cmd(holder.id, "judge-derby", {}))
     assert not result.ok
     assert result.reason == "that derby has already been judged"
 
@@ -171,7 +175,7 @@ def test_judge_rejects_already_judged():
 def test_judge_rejects_empty_derby():
     actor, room, holder = _world()
     spawn_derby(actor.world, room_id=room.id)
-    result = JudgeDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "judge-derby", {}))
+    result = execute_handler(JudgeDerbyHandler(), _ctx(actor), _cmd(holder.id, "judge-derby", {}))
     assert not result.ok
     assert result.reason == "that derby has no entries to judge"
 
@@ -179,7 +183,7 @@ def test_judge_rejects_empty_derby():
 def test_enter_rejects_no_fish():
     actor, room, holder = _world()
     spawn_derby(actor.world, room_id=room.id)
-    result = EnterDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "enter-derby", {}))
+    result = execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {}))
     assert not result.ok
     assert result.reason == "you have no fish to enter"
 
@@ -187,7 +191,7 @@ def test_enter_rejects_no_fish():
 def test_enter_rejects_no_derby():
     actor, _room, holder = _world()
     _fish(actor, holder)
-    result = EnterDerbyHandler().execute(_ctx(actor), _cmd(holder.id, "enter-derby", {}))
+    result = execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {}))
     assert not result.ok
     assert result.reason == "there is no fishing derby within reach"
 
@@ -197,8 +201,8 @@ def test_enter_rejects_non_derby_target():
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
     _fish(actor, holder)
-    result = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"derby_id": str(rock.id)})
+    result = execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"derby_id": str(rock.id)})
     )
     assert not result.ok
     assert result.reason == "that is not a fishing derby"
@@ -209,8 +213,8 @@ def test_enter_rejects_non_fish_target():
     spawn_derby(actor.world, room_id=room.id)
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     holder.add_relationship(Contains(mode=ContainmentMode.INVENTORY), rock.id)
-    result = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(rock.id)})
+    result = execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": str(rock.id)})
     )
     assert not result.ok
     assert result.reason == "that is not a fish"
@@ -219,7 +223,7 @@ def test_enter_rejects_non_fish_target():
 def test_enter_rejects_invalid_character():
     actor, room, _holder = _world()
     spawn_derby(actor.world, room_id=room.id)
-    result = EnterDerbyHandler().execute(_ctx(actor), _cmd("???", "enter-derby", {}))
+    result = execute_handler(EnterDerbyHandler(), _ctx(actor), _cmd("???", "enter-derby", {}))
     assert not result.ok
     assert result.reason == "invalid character id"
 
@@ -227,7 +231,7 @@ def test_enter_rejects_invalid_character():
 def test_judge_rejects_invalid_character():
     actor, room, _holder = _world()
     spawn_derby(actor.world, room_id=room.id)
-    result = JudgeDerbyHandler().execute(_ctx(actor), _cmd("???", "judge-derby", {}))
+    result = execute_handler(JudgeDerbyHandler(), _ctx(actor), _cmd("???", "judge-derby", {}))
     assert not result.ok
     assert result.reason == "invalid character id"
 
@@ -236,15 +240,17 @@ def test_enter_rejects_invalid_and_unreachable_derby():
     actor, room, holder = _world()
     spawn_derby(actor.world, room_id=room.id)
     _fish(actor, holder)
-    bad = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"derby_id": "???"})
+    bad = execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"derby_id": "???"})
     )
     assert bad.reason == "invalid derby id"
 
     far_room = spawn_entity(actor.world, [RoomComponent(title="Far", biome="lake")])
     far_derby = spawn_derby(actor.world, room_id=far_room.id)
-    unreachable = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"derby_id": str(far_derby.id)})
+    unreachable = execute_handler(
+        EnterDerbyHandler(),
+        _ctx(actor),
+        _cmd(holder.id, "enter-derby", {"derby_id": str(far_derby.id)}),
     )
     assert unreachable.reason == "that derby is not within reach"
 
@@ -252,8 +258,8 @@ def test_enter_rejects_invalid_and_unreachable_derby():
 def test_enter_rejects_invalid_fish_id():
     actor, room, holder = _world()
     spawn_derby(actor.world, room_id=room.id)
-    result = EnterDerbyHandler().execute(
-        _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": "???"})
+    result = execute_handler(
+        EnterDerbyHandler(), _ctx(actor), _cmd(holder.id, "enter-derby", {"fish_id": "???"})
     )
     assert result.reason == "invalid fish id"
 

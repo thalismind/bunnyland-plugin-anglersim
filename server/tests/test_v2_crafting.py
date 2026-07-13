@@ -14,6 +14,7 @@ from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.consumables.components import FoodComponent
 from bunnyland.prompts.context import ComponentPromptContext
+from conftest import execute_handler
 
 from bunnyland_anglersim import bait_quality, material_potency, spawn_bait_material
 from bunnyland_anglersim.components import BaitComponent
@@ -82,13 +83,13 @@ def test_material_prompt_fragment():
 
 def test_craft_bait_combines_and_consumes_materials():
     actor, room, holder = _world()
-    a = spawn_bait_material(actor.world, room_id=room.id, label="worm", potency=0.5)
+    a = spawn_bait_material(actor.world, label="worm", potency=0.5)
     b = spawn_bait_material(actor.world, label="dough", potency=0.8)
     _hold(holder, a)
     _hold(holder, b)
 
-    result = CraftBaitHandler().execute(
-        HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
+    result = execute_handler(
+        CraftBaitHandler(), HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
     )
 
     assert result.ok
@@ -108,8 +109,8 @@ def test_craft_bait_combines_and_consumes_materials():
 
 def test_craft_bait_rejects_without_materials():
     actor, _room, holder = _world()
-    result = CraftBaitHandler().execute(
-        HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
+    result = execute_handler(
+        CraftBaitHandler(), HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
     )
     assert not result.ok
     assert result.reason == "you have no bait materials to craft with"
@@ -117,8 +118,8 @@ def test_craft_bait_rejects_without_materials():
 
 def test_craft_bait_rejects_invalid_character():
     actor, _room, _holder = _world()
-    result = CraftBaitHandler().execute(
-        HandlerContext(world=actor.world, epoch=EPOCH), _cmd("???", {})
+    result = execute_handler(
+        CraftBaitHandler(), HandlerContext(world=actor.world, epoch=EPOCH), _cmd("???", {})
     )
     assert not result.ok
     assert result.reason == "invalid character id"

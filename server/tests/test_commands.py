@@ -12,6 +12,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
+from conftest import execute_handler
 
 from bunnyland_anglersim import (
     BaitComponent,
@@ -68,7 +69,7 @@ def test_fish_lands_a_deterministic_catch():
     actor, room, holder = _world(biome="lake")
     spot = spawn_fishing_spot(actor.world, room_id=room.id, biome="lake")
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert result.ok
     expected = roll_catch(
@@ -97,7 +98,7 @@ def test_fish_advances_spot_and_logs_catch():
     actor, room, holder = _world()
     spot = spawn_fishing_spot(actor.world, room_id=room.id, biome="lake")
 
-    FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     state = spot.get_component(FishingSpotComponent)
     assert state.casts == 1
@@ -111,7 +112,7 @@ def test_fish_at_a_room_attached_spot():
     actor, room, holder = _world(biome="river")
     attach_fishing_spot(room)  # biome defaults to the room's own biome
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert result.ok
     expected = roll_catch(
@@ -130,8 +131,8 @@ def test_fish_targets_an_explicit_spot():
     spawn_fishing_spot(actor.world, room_id=room.id, biome="lake")
     chosen = spawn_fishing_spot(actor.world, room_id=room.id, biome="coast")
 
-    result = FishHandler().execute(
-        _ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(chosen.id)})
+    result = execute_handler(
+        FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(chosen.id)})
     )
 
     assert result.ok
@@ -144,7 +145,7 @@ def test_bait_biases_the_roll_and_is_consumed():
     bait = spawn_bait(actor.world, quality=1.5, uses=1)
     holder.add_relationship(Contains(mode=ContainmentMode.INVENTORY), bait.id)
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert result.ok
     assert result.events[0].used_bait is True
@@ -167,7 +168,7 @@ def test_multi_use_bait_decrements_instead_of_vanishing():
     bait = spawn_bait(actor.world, quality=1.0, uses=2)
     holder.add_relationship(Contains(mode=ContainmentMode.INVENTORY), bait.id)
 
-    FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert actor.world.has_entity(bait.id)
     assert bait.get_component(BaitComponent).uses == 1
@@ -196,7 +197,7 @@ def test_legendary_catch_emits_room_event():
         == "legendary"
     )
 
-    result = FishHandler().execute(_ctx(actor, epoch), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor, epoch), _cmd(holder.id, "fish", {}))
 
     assert result.ok
     assert _caught_fish(actor, holder).get_component(FishComponent).tier == "legendary"
@@ -221,7 +222,7 @@ def test_non_legendary_catch_has_no_legendary_event():
         != "legendary"
     )
 
-    result = FishHandler().execute(_ctx(actor, epoch), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor, epoch), _cmd(holder.id, "fish", {}))
 
     assert not any(isinstance(event, LegendaryCatchEvent) for event in result.events)
 
@@ -230,7 +231,7 @@ def test_fish_rejects_invalid_character_id():
     actor, room, holder = _world()
     spawn_fishing_spot(actor.world, room_id=room.id)
 
-    result = FishHandler().execute(_ctx(actor), _cmd("???", "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd("???", "fish", {}))
 
     assert not result.ok
     assert result.reason == "invalid character id"
@@ -239,7 +240,7 @@ def test_fish_rejects_invalid_character_id():
 def test_fish_rejects_when_no_spot_reachable():
     actor, _room, holder = _world()
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert not result.ok
     assert result.reason == "there is no fishing spot within reach"
@@ -249,7 +250,7 @@ def test_fish_rejects_when_spot_on_cooldown():
     actor, room, holder = _world()
     spawn_fishing_spot(actor.world, room_id=room.id, ready_at_epoch=EPOCH + 10)
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert not result.ok
     assert result.reason == "that fishing spot is still settling"
@@ -259,7 +260,7 @@ def test_fish_rejects_when_spot_is_fished_out():
     actor, room, holder = _world()
     spawn_fishing_spot(actor.world, room_id=room.id, stock=0)
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {}))
+    result = execute_handler(FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {}))
 
     assert not result.ok
     assert result.reason == "that fishing spot is fished out"
@@ -269,7 +270,9 @@ def test_fish_rejects_invalid_explicit_spot_id():
     actor, room, holder = _world()
     spawn_fishing_spot(actor.world, room_id=room.id)
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {"spot_id": "???"}))
+    result = execute_handler(
+        FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {"spot_id": "???"})
+    )
 
     assert not result.ok
     assert result.reason == "invalid fishing spot id"
@@ -279,7 +282,9 @@ def test_fish_rejects_missing_explicit_spot():
     actor, room, holder = _world()
     spawn_fishing_spot(actor.world, room_id=room.id)
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {"spot_id": "entity_9999"}))
+    result = execute_handler(
+        FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {"spot_id": "entity_9999"})
+    )
 
     assert not result.ok
     assert result.reason == "that fishing spot does not exist"
@@ -290,8 +295,8 @@ def test_fish_rejects_unreachable_explicit_spot():
     far_room = spawn_entity(actor.world, [RoomComponent(title="Far Lake", biome="lake")])
     far_spot = spawn_fishing_spot(actor.world, room_id=far_room.id, biome="lake")
 
-    result = FishHandler().execute(
-        _ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(far_spot.id)})
+    result = execute_handler(
+        FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(far_spot.id)})
     )
 
     assert not result.ok
@@ -304,7 +309,9 @@ def test_fish_rejects_explicit_non_spot_target():
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
 
-    result = FishHandler().execute(_ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(rock.id)}))
+    result = execute_handler(
+        FishHandler(), _ctx(actor), _cmd(holder.id, "fish", {"spot_id": str(rock.id)})
+    )
 
     assert not result.ok
     assert result.reason == "that is not a fishing spot"

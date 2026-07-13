@@ -79,8 +79,7 @@ def test_model_registration_conversion_and_centered_projection(tmp_path, monkeyp
     projected = next(
         item
         for item in room_scene_view(actor, str(room.id))["decorations"]
-        if item.get("decoration_source3d", {}).get("role")
-        == "bunnyland.anglersim/fishing-pond"
+        if item.get("decoration_source3d", {}).get("role") == "bunnyland.anglersim/fishing-pond"
     )
 
     assert model.asset.source.resolve().is_relative_to(model.asset.source.root)

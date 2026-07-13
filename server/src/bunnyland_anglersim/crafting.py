@@ -28,18 +28,19 @@ from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
 )
+from bunnyland.core.mutations import AddEdge, AddEntity, DeleteEntity, EntityReference, MutationPlan
 from bunnyland.foundation.consumables.components import FoodComponent
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component, Entity, World
 
 from . import connectors
+from .components import BaitComponent
 from .events import BaitCraftedEvent
-from .prefabs import spawn_bait
 
 #: Baseline quality every crafted bait starts from, before material potency.
 BASE_BAIT_QUALITY = 0.5
@@ -123,21 +124,38 @@ class CraftBaitHandler:
         if not materials:
             return rejected("you have no bait materials to craft with")
         quality = bait_quality([potency for _item, potency in materials])
-        for item, _potency in materials:
-            ctx.world.remove(item.id)
-        bait = spawn_bait(ctx.world, name="crafted bait", quality=quality, uses=1)
-        character.add_relationship(Contains(mode=ContainmentMode.INVENTORY), bait.id)
-        return ok(
-            BaitCraftedEvent(
+        bait = EntityReference()
+        operations = [DeleteEntity(item.id) for item, _potency in materials]
+        operations.extend(
+            (
+                AddEntity(
+                    (
+                        IdentityComponent(
+                            name="crafted bait",
+                            kind="item",
+                            tags=("anglersim", "bait"),
+                        ),
+                        PortableComponent(),
+                        HoldableComponent(slot="hand"),
+                        BaitComponent(quality=quality, uses=1),
+                    ),
+                    reference=bait,
+                ),
+                AddEdge(character.id, bait, Contains(mode=ContainmentMode.INVENTORY)),
+            )
+        )
+        return planned(
+            MutationPlan(tuple(operations)),
+            lambda: BaitCraftedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.PRIVATE,
                     actor_id=str(character_id),
-                    target_ids=(str(bait.id),),
-                    item_id=str(bait.id),
+                    target_ids=(str(bait.require()),),
+                    item_id=str(bait.require()),
                     quality=quality,
                     materials=len(materials),
                 )
-            )
+            ),
         )
 
 

@@ -15,6 +15,7 @@ from bunnyland.core.events import EventVisibility, event_base
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.memory import InMemoryStore
 from bunnyland.prompts.context import ComponentPromptContext
+from conftest import execute_handler
 
 from bunnyland_anglersim import (
     FishHandler,
@@ -110,8 +111,8 @@ def test_fish_sets_record_and_emits_event():
     spawn_fishing_spot(actor.world, room_id=room.id, biome="lake")
     spawn_record_book(actor.world, room_id=room.id)
 
-    result = FishHandler().execute(
-        HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
+    result = execute_handler(
+        FishHandler(), HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
     )
 
     assert result.ok
@@ -143,8 +144,8 @@ def test_non_record_catch_emits_no_record_event():
         book, RecordBookComponent(records=((expected.species, expected.weight + 100.0, "old"),))
     )
 
-    result = FishHandler().execute(
-        HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
+    result = execute_handler(
+        FishHandler(), HandlerContext(world=actor.world, epoch=EPOCH), _cmd(holder.id, {})
     )
     assert result.ok
     assert not any(isinstance(e, RecordSetEvent) for e in result.events)

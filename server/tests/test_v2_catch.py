@@ -13,6 +13,7 @@ from bunnyland.core import (
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.consumables.components import FoodComponent
+from conftest import execute_handler
 
 from bunnyland_anglersim import (
     FishHandler,
@@ -96,7 +97,8 @@ def test_fish_handler_applies_gear_bonus():
     rod = spawn_rod(actor.world, tier="masterwork")
     holder.add_relationship(Contains(mode=ContainmentMode.INVENTORY), rod.id)
 
-    result = FishHandler().execute(
+    result = execute_handler(
+        FishHandler(),
         HandlerContext(world=actor.world, epoch=EPOCH),
         build_submitted_command(
             character_id=str(holder.id),

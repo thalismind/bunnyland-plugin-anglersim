@@ -26,21 +26,20 @@ from bunnyland.core import (
 )
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
+from bunnyland.core.mutations import AddEdge, MutationPlan, SetComponent
 from bunnyland.prompts.context import ComponentPromptContext
 from pydantic.dataclasses import dataclass
 from relics import Component, Edge, Entity, World
 
-from . import connectors
 from .components import FishComponent
 from .events import DerbyEnteredEvent, DerbyJudgedEvent
 
@@ -189,24 +188,14 @@ class EnterDerbyHandler:
         if has_entry(derby, fish.id):
             return rejected("that fish is already entered")
         catch = fish.get_component(FishComponent)
-        derby.add_relationship(
-            DerbyEntry(
-                entrant_id=str(character_id),
-                species=catch.species,
-                weight=catch.weight,
-                entered_at_epoch=ctx.epoch,
-            ),
-            fish.id,
-        )
-        connectors.publish_contest_entry(
-            ctx.world,
-            derby,
-            fish.id,
+        entry = DerbyEntry(
             entrant_id=str(character_id),
-            score=catch.weight,
-            epoch=ctx.epoch,
+            species=catch.species,
+            weight=catch.weight,
+            entered_at_epoch=ctx.epoch,
         )
-        return ok(
+        return planned(
+            MutationPlan((AddEdge(derby.id, fish.id, entry),)),
             DerbyEnteredEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -218,7 +207,7 @@ class EnterDerbyHandler:
                     species=catch.species,
                     weight=catch.weight,
                 )
-            )
+            ),
         )
 
 
@@ -241,16 +230,20 @@ class JudgeDerbyHandler:
         if not entries:
             return rejected("that derby has no entries to judge")
         winning_edge, winning_fish = entries[0]
-        replace_component(
-            derby,
-            replace(
-                state,
-                open=False,
-                winner_id=winning_edge.entrant_id,
-                winning_weight=winning_edge.weight,
+        return planned(
+            MutationPlan(
+                (
+                    SetComponent(
+                        derby.id,
+                        replace(
+                            state,
+                            open=False,
+                            winner_id=winning_edge.entrant_id,
+                            winning_weight=winning_edge.weight,
+                        ),
+                    ),
+                )
             ),
-        )
-        return ok(
             DerbyJudgedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -262,7 +255,7 @@ class JudgeDerbyHandler:
                     species=winning_edge.species,
                     weight=winning_edge.weight,
                 )
-            )
+            ),
         )
 
 
